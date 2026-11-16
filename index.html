@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Academic Job Openings India</title>
+<meta name="description" content="Faculty openings at IITs, IISc, NITs, IISERs and central universities in India: recruitment status, apply links and official advertisements.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Academic job openings in India</h1>
+      <p class="lede">One tile per institute: whether recruitment is open, where to apply, and the official advertisement. Every link goes to the institute's own site.</p>
+    </div>
+    <label class="profile" for="profile">Job profile
+      <select id="profile"></select>
+    </label>
+  </header>
+</div>
+
+<div class="bar"><div class="wrap">
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search institute, city or state" aria-label="Search institute, city or state">
+    <select id="state" aria-label="State"></select>
+    <select id="sort" aria-label="Sort order">
+      <option value="status">Open first</option>
+      <option value="deadline">Closing soonest</option>
+      <option value="name">Name A to Z</option>
+    </select>
+  </div>
+  <div class="row"><span class="rowlabel">Institute type</span><div class="seg" id="kindSeg" role="group" aria-label="Institute type"></div></div>
+  <div class="row"><span class="rowlabel">Status</span><div class="seg" id="statusSeg" role="group" aria-label="Recruitment status"></div></div>
+</div></div>
+
+<main class="wrap">
+  <p class="count" id="count" aria-live="polite"></p>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer class="wrap">
+  <p><strong>About this data.</strong> "Open" means a rolling or current advertisement was found. "Not yet verified" means nobody has confirmed the status, so check the institute page. Tiles without a recruitment link point to the institute website for now.</p>
+  <p>This is an independent directory and is not affiliated with any institute. Always confirm dates and eligibility in the official advertisement.</p>
+</footer>
+
+<script src="data/listings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
