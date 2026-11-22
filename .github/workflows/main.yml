@@ -1,0 +1,59 @@
+# Checks every institute site daily, commits any changes, and publishes the website.
+# Also republishes the site whenever you change anything on the main branch.
+name: Update listings
+
+on:
+  schedule:
+    - cron: "17 1 * * *"        # every day at 06:47 India time
+  workflow_dispatch:            # "Run workflow" button on the Actions tab
+  push:
+    branches: [main]
+
+permissions:
+  contents: write               # commit updated listings
+  pages: write                  # publish the site
+  id-token: write
+
+concurrency:
+  group: update-listings
+  cancel-in-progress: false
+
+jobs:
+  update-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r scraper/requirements.txt
+
+      - name: Rebuild listings.js after a manual edit
+        if: github.event_name == 'push'
+        run: python scraper/scrape.py --build-only
+
+      - name: Check every institute site
+        if: github.event_name != 'push'
+        env:
+          BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}          # optional: web search for missing pages
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}  # optional: AI double-check of each advertisement
+        run: python scraper/scrape.py
+
+      - name: Save changes to the repository
+        run: |
+          git config user.name "listings-bot"
+          git config user.email "listings-bot@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "Update listings ($(date -u +%F))"
+          git push
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4
