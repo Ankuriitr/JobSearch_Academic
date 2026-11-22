@@ -33,7 +33,10 @@ from urllib import robotparser
 from urllib.parse import urljoin, urlparse
 
 import requests
+import urllib3
 from bs4 import BeautifulSoup
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_JSON = ROOT / "data" / "listings.json"
@@ -46,6 +49,7 @@ USER_AGENT = os.environ.get(
 MAX_BYTES = 8_000_000
 DELAY_SECONDS = 1.5          # pause between requests to the same site
 PDF_PAGES = 6
+PAGES_PER_LISTING = 30       # most pages opened for one institute, so one slow site cannot hold up the run
 
 # ---------------------------------------------------------------- text rules
 FACULTY_RE = re.compile(r"faculty|professor", re.I)
@@ -59,7 +63,11 @@ DEADLINE_KEY_RE = re.compile(
 NEGATIVE_RE = re.compile(
     r"non[\s-]?teaching|non[\s-]?faculty|staff|jrf|srf|project|technical|administrat|tender|admission|ph\.?d|"
     r"student|guest|result|shortlist|short-list|syllabus|intern|postdoc|post-doc|fellow|registrar|librarian|"
-    r"contract|visiting|adjunct|walk-in|scholarship|quotation", re.I)
+    r"contract|visiting|adjunct|walk-in|scholarship|quotation|in[\s-]?charge|profile|directory|"
+    r"list\s+of\s+faculty|faculty\s+members|our\s+faculty|people|achievement|award|newsletter", re.I)
+HOME_PATHS = {"", "/", "/index.php", "/index.html", "/index.htm", "/home", "/en", "/en/", "/main/en"}
+COMMON_PATHS = ["recruitment", "recruitments", "careers", "career", "jobs", "faculty-recruitment",
+                "faculty-positions", "vacancies", "employment", "recruitment.php", "careers.php"]
 
 MONTHS = {m: i + 1 for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"])}
@@ -115,6 +123,16 @@ def site_key(url):
     return ".".join(parts[-n:])
 
 
+def is_homepage(url):
+    return urlparse(url).path.rstrip("/") in {p.rstrip("/") for p in HOME_PATHS} and not urlparse(url).query
+
+
+def stale_year(url, year):
+    """True when the address names only years at least two years old, e.g. /archive/2022/ in 2026."""
+    years = [int(y) for y in re.findall(r"(?<!\d)(20[0-3]\d)(?!\d)", url)]
+    return bool(years) and max(years) <= year - 2
+
+
 def link_score(url, text, year):
     """How much a link looks like a faculty advertisement."""
     s = f"{text} {urlparse(url).path}".lower().replace("_", " ").replace("-", " ").replace("%20", " ")
@@ -127,6 +145,8 @@ def link_score(url, text, year):
     if url.lower().split("?")[0].endswith(".pdf"): score += 1
     if str(year) in s or str(year - 1) in s: score += 1
     if NEGATIVE_RE.search(s): score -= 5
+    if stale_year(url, year): score -= 5
+    if is_homepage(url): score -= 5
     return score
 
 
@@ -139,6 +159,7 @@ class Page:
     text: str = ""
     links: list = field(default_factory=list)   # (absolute url, link text)
     is_pdf: bool = False
+    insecure: bool = False       # read only after ignoring a broken security certificate
 
 
 class Fetcher:
@@ -146,6 +167,10 @@ class Fetcher:
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": USER_AGENT, "Accept-Language": "en"})
         self.last_hit, self.robots, self.cache = {}, {}, {}
+        self.budget = PAGES_PER_LISTING
+
+    def new_listing(self):
+        self.budget = PAGES_PER_LISTING
 
     def allowed(self, url):
         p = urlparse(url)
@@ -153,7 +178,7 @@ class Fetcher:
         if base not in self.robots:
             rp = robotparser.RobotFileParser()
             try:
-                r = self.session.get(base + "/robots.txt", timeout=15)
+                r = self.session.get(base + "/robots.txt", timeout=15, verify=False)
                 rp.parse(r.text.splitlines() if r.status_code == 200 else [])
             except requests.RequestException:
                 rp.parse([])
@@ -163,6 +188,9 @@ class Fetcher:
     def get(self, url):
         if url in self.cache:
             return self.cache[url]
+        if self.budget <= 0:
+            return Page(url, error="page limit for this institute reached")
+        self.budget -= 1
         page = self._get(url)
         self.cache[url] = page
         return page
@@ -174,8 +202,15 @@ class Fetcher:
         wait = DELAY_SECONDS - (time.time() - self.last_hit.get(host, 0))
         if wait > 0:
             time.sleep(wait)
+        insecure = False
         try:
-            r = self.session.get(url, timeout=30)
+            try:
+                r = self.session.get(url, timeout=(10, 25))
+            except requests.exceptions.SSLError:
+                # Many institute sites have misconfigured certificates. These are public pages that we
+                # only read, so retry without the check, but never update a listing automatically from them.
+                r = self.session.get(url, timeout=(10, 25), verify=False)
+                insecure = True
         except requests.exceptions.SSLError:
             return Page(url, error="security certificate problem")
         except requests.RequestException as e:
@@ -187,7 +222,7 @@ class Fetcher:
         body = r.content[:MAX_BYTES]
         ctype = r.headers.get("content-type", "").lower()
         if body[:5] == b"%PDF-" or "pdf" in ctype:
-            return Page(r.url, ok=True, text=pdf_text(body), is_pdf=True)
+            return Page(r.url, ok=True, text=pdf_text(body), is_pdf=True, insecure=insecure)
         soup = BeautifulSoup(body, "html.parser")
         for tag in soup(["script", "style", "noscript"]):
             tag.decompose()
@@ -196,7 +231,7 @@ class Fetcher:
             href = urljoin(r.url, a["href"].strip())
             if href.startswith(("http://", "https://")):
                 links.append((href.split("#")[0], a.get_text(" ", strip=True) or a.get("title", "")))
-        return Page(r.url, ok=True, text=soup.get_text(" ", strip=True), links=links)
+        return Page(r.url, ok=True, text=soup.get_text(" ", strip=True), links=links, insecure=insecure)
 
 
 def pdf_text(body):
@@ -267,34 +302,48 @@ def discover_page(home, fetcher, name):
     start = fetcher.get(home)
     if not start.ok:
         return None, f"homepage did not load ({start.error})"
+    root = f"{urlparse(start.url).scheme}://{urlparse(start.url).netloc}/"
     seen, best = {start.url}, None
+
+    def consider(p):
+        nonlocal best
+        if p.ok and not p.is_pdf and looks_like_recruitment(p):
+            strength = len(FACULTY_RE.findall(p.text)) + 5 * bool(FACULTY_RE.search(urlparse(p.url).path))
+            if not best or strength > best[0]:
+                best = (strength, p)
+
+    # Follow the most promising links: five from the homepage, three from each page after that, three levels deep.
     frontier = [start]
-    for _depth in range(2):
+    for depth in range(3):
         nxt = []
         for page in frontier:
             cands = sorted({u: link_score(u, t, year) for u, t in page.links
                             if site_key(u) == site_key(home) and u not in seen}.items(),
                            key=lambda x: -x[1])
-            for url, score in cands[:3]:
+            for url, score in cands[:5 if depth == 0 else 3]:
                 if score < 1:
                     break
                 seen.add(url)
                 p = fetcher.get(url)
-                if p.is_pdf or not p.ok:
-                    continue
-                if looks_like_recruitment(p):
-                    strength = len(FACULTY_RE.findall(p.text))
-                    if not best or strength > best[0]:
-                        best = (strength, p)
-                nxt.append(p)
-        if best:
+                consider(p)
+                if p.ok and not p.is_pdf:
+                    nxt.append(p)
+        if best and best[0] >= 6:
             return best[1], ""
-        frontier = nxt
+        frontier = nxt[:8]
+    # Common addresses such as /recruitment or /careers.
+    for path in COMMON_PATHS:
+        url = urljoin(root, path)
+        if url not in seen:
+            seen.add(url)
+            consider(fetcher.get(url))
+    if best:
+        return best[1], ""
     for url in web_search(f"{name} faculty recruitment advertisement", fetcher.session):
         if site_key(url) == site_key(home):
-            p = fetcher.get(url)
-            if not p.is_pdf and looks_like_recruitment(p):
-                return p, ""
+            consider(fetcher.get(url))
+    if best:
+        return best[1], ""
     return None, "no faculty recruitment page found from the homepage"
 
 
@@ -309,7 +358,9 @@ def analyse(listing, fetcher, today):
     page, why = None, ""
     if listing.get("applyUrl"):
         p = fetcher.get(listing["applyUrl"])
-        if p.ok and not p.is_pdf and (FACULTY_RE.search(p.text) or p.links):
+        if p.ok and not p.is_pdf and is_homepage(p.url) and not is_homepage(listing["applyUrl"]):
+            why = "saved recruitment link now redirects to the homepage"
+        elif p.ok and not p.is_pdf and (FACULTY_RE.search(p.text) or p.links):
             page = p
         else:
             why = f"saved recruitment link did not work ({p.error or 'no readable content'})"
@@ -323,29 +374,51 @@ def analyse(listing, fetcher, today):
 
     # Candidate advertisements: the page itself plus its best-scoring links on the same site.
     year = today.year
-    scored = sorted({u: link_score(u, t, year) for u, t in page.links if site_key(u) == site_key(page.url)}.items(),
-                    key=lambda x: -x[1])
-    sources = [(page.url, page.text, False)]
-    for url, score in scored[:4]:
+    scored = sorted({u: link_score(u, t, year) for u, t in page.links
+                     if site_key(u) == site_key(page.url) and u != page.url}.items(), key=lambda x: -x[1])
+    sources = [(page.url, page.text, False, page.insecure)]
+    for url, score in scored[:5]:
         if score < 4:
             break
         p = fetcher.get(url)
-        if p.ok and (FACULTY_RE.search(p.text) or (p.is_pdf and not p.text.strip())):
-            sources.append((p.url, p.text, True))
+        if p.ok and not is_homepage(p.url) and not stale_year(p.url, year) and (
+                FACULTY_RE.search(p.text) or (p.is_pdf and not p.text.strip())):
+            sources.append((p.url, p.text, True, p.insecure))
 
-    # Read each source; prefer the advertisement with the latest last date, then a rolling one.
-    readings = [(url, find_deadline(text, today), bool(ROLLING_RE.search(text)), is_ad, text)
-                for url, text, is_ad in sources]
-    dated = [r for r in readings if r[1]]
-    rolling = [r for r in readings if r[2]]
-    ads = [r for r in readings if r[3]]
-    pick = max(dated, key=lambda r: (r[1], r[3])) if dated else (rolling[0] if rolling else (ads[0] if ads else readings[0]))
-    f.ad_url, f.deadline, f.rolling = pick[0], pick[1], bool(rolling)
-    if not pick[3] and not (pick[1] or pick[2]):
-        f.ad_url = ""                    # nothing that looks like an advertisement
-    unreadable = [r for r in ads if not r[4].strip()]
+    # Read each source on its own: its last date, and whether it is itself a rolling advertisement.
+    readings = [dict(url=url, deadline=find_deadline(text, today), rolling=bool(ROLLING_RE.search(text)),
+                     is_ad=is_ad, text=text, insecure=insecure)
+                for url, text, is_ad, insecure in sources]
+    upcoming = [r for r in readings if r["deadline"] and r["deadline"] >= today]
+    rolling = [r for r in readings if r["rolling"] and not (r["deadline"] and r["deadline"] < today)]
+    past = [r for r in readings if r["deadline"] and r["deadline"] < today]
+    ads = [r for r in readings if r["is_ad"]]
+    if upcoming:
+        pick = max(upcoming, key=lambda r: (r["deadline"], r["is_ad"]))
+    elif rolling:
+        pick = max(rolling, key=lambda r: r["is_ad"])
+    elif past:
+        pick = max(past, key=lambda r: (r["deadline"], r["is_ad"]))
+    else:
+        pick = ads[0] if ads else readings[0]
+    # "Rolling" counts only when the chosen advertisement itself says so, not some other page.
+    f.deadline, f.rolling = pick["deadline"], pick["rolling"]
+    f.ad_url = pick["url"] if (pick["is_ad"] or pick["deadline"] or pick["rolling"]) else ""
+    if f.ad_url and is_homepage(f.ad_url):
+        f.ad_url = ""
+    unreadable = [r for r in ads if not r["text"].strip()]
 
-    if f.deadline or f.rolling:
+    past_ads = [r for r in past if r["is_ad"]]
+    if f.rolling and not pick["is_ad"] and past_ads and not upcoming:
+        latest = max(r["deadline"] for r in past_ads)
+        f.confidence = "medium"
+        f.reason = (f"page mentions a rolling advertisement, but the advertisement found closed on "
+                    f"{latest.isoformat()}; check whether it is still open")
+    elif f.rolling and f.deadline and f.deadline < today:
+        f.confidence = "medium"
+        f.reason = (f"rolling advertisement, but its latest cut-off date ({f.deadline.isoformat()}) has passed; "
+                    "check whether it is still open")
+    elif f.deadline or f.rolling:
         f.confidence = "high"
         f.reason = ("rolling advertisement" if f.rolling and not f.deadline
                     else f"last date {f.deadline.isoformat()} read from the advertisement")
@@ -353,8 +426,11 @@ def analyse(listing, fetcher, today):
         f.confidence = "medium"
         f.reason = ("advertisement is a scanned PDF that cannot be read automatically" if unreadable
                     else "recruitment page found but no last date or rolling wording")
+    if f.confidence == "high" and (pick["insecure"] or page.insecure):
+        f.confidence = "medium"
+        f.reason += " (site has a broken security certificate, so not applied automatically)"
 
-    ai = ai_check(name, pick[4])
+    ai = ai_check(name, pick["text"])
     if ai is not None:
         if not ai.get("is_faculty_ad"):
             f.confidence, f.reason = "medium", "AI check: this does not read like a faculty advertisement"
@@ -470,6 +546,7 @@ def main(argv=None):
     for i, listing in enumerate(todo, 1):
         print(f"[{i}/{len(todo)}] {listing['name']} ...", end=" ", flush=True)
         try:
+            fetcher.new_listing()
             finding = analyse(listing, fetcher, today)
             target = dict(listing) if args.dry_run else listing
             bucket, msg = apply_finding(target, finding, today)

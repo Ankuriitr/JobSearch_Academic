@@ -37,6 +37,7 @@ def test_links_and_sites():
 
 class FakeFetcher:
     session = None
+    cache = {}
 
     def __init__(self, pages):
         self.pages = pages
@@ -86,6 +87,59 @@ def test_review_and_failure_paths():
     # Site down: failed, nothing changes; a stored past last date still closes the listing.
     l = dict(base, rolling=False, deadline="2026-11-01"); fd = s.analyse(l, FakeFetcher({}), TODAY)
     assert s.apply_finding(l, fd, TODAY)[0] == "failed" and s.expire(l, TODAY) and l["status"] == "inactive"
+
+
+def test_homepage_and_stale_links():
+    y = 2026
+    assert s.is_homepage("https://www.iitbbs.ac.in") and s.is_homepage("https://x.ac.in/index.php")
+    assert not s.is_homepage("https://x.ac.in/recruitment")
+    assert s.stale_year("https://x.ac.in/files/archive/2022/advertisement/Faculty.pdf", y)
+    assert not s.stale_year("https://x.ac.in/docs/faculty-2026.pdf", y)
+    assert not s.stale_year("https://x.ac.in/docs/faculty.pdf", y)
+    assert s.link_score("https://x.ac.in/faculty-in-charge", "Faculty In-charge", y) < 4
+    assert s.link_score("https://x.ac.in/files/archive/2022/Faculty_Recruitment_Advt.pdf", "Faculty advertisement", y) < 4
+
+
+def test_rolling_must_come_from_the_advertisement():
+    rec, ad = "https://www.iitx.ac.in/careers", "https://www.iitx.ac.in/docs/faculty-advertisement-2026.pdf"
+    base = {"name": "IIT X", "kind": "IIT", "status": "active", "applyUrl": rec, "adUrl": "", "siteUrl": "",
+            "note": "", "deadline": "", "rolling": True, "checked": ""}
+    # Menu says "Rolling Advertisement", but the actual advertisement has closed: review, do not keep it open.
+    f = FakeFetcher({
+        rec: page(rec, "Careers. Rolling Advertisement for Faculty. Faculty recruitment drive, professor posts, apply online.",
+                  [(ad, "Faculty Recruitment Advertisement 2026")]),
+        ad: page(ad, "Faculty recruitment drive. Last date for online application: 10.11.2026", pdf=True)})
+    l = dict(base); fd = s.analyse(l, f, TODAY)
+    assert fd.confidence == "medium" and "closed on 2026-11-10" in fd.reason, fd
+    assert s.apply_finding(l, fd, TODAY)[0] == "review" and l["status"] == "active"
+    # A rolling advertisement whose latest cut-off has passed: review as well.
+    f = FakeFetcher({rec: page(rec, "Rolling advertisement for faculty positions, professor. Cut-off date: 15.10.2026")})
+    fd = s.analyse(dict(base), f, TODAY)
+    assert fd.confidence == "medium" and "cut-off" in fd.reason, fd
+
+
+def test_redirect_to_homepage_is_a_dead_link():
+    old, home, rec = "https://www.iitbbs.ac.in/faculty-openings.php", "https://www.iitbbs.ac.in/", "https://www.iitbbs.ac.in/faculty-recruitment"
+    homepage = page(home, "Welcome", [(rec, "Faculty Recruitment")])
+    pages = {old: homepage, home: homepage,
+             rec: page(rec, "Faculty recruitment: rolling advertisement for Assistant Professor and Professor. Applications invited.")}
+    l = {"name": "IIT Bhubaneswar", "kind": "IIT", "status": "unverified", "applyUrl": old, "adUrl": "", "siteUrl": "",
+         "note": "", "deadline": "", "rolling": False, "checked": ""}
+    fd = s.analyse(l, FakeFetcher(pages), TODAY)
+    assert fd.apply_url == rec and fd.ad_url == rec and fd.confidence == "high", fd
+
+
+def test_common_paths_and_insecure_sites():
+    home, rec = "https://www.cux.ac.in/", "https://www.cux.ac.in/recruitment"
+    pages = {home: page(home, "Welcome to CU X", [("https://www.cux.ac.in/about", "About us")]),
+             rec: page(rec, "Recruitment of faculty: Professor, Associate Professor. Last date: 15.12.2026")}
+    l = {"name": "CU X", "kind": "CU", "status": "unverified", "applyUrl": "", "adUrl": "", "siteUrl": home,
+         "note": "", "deadline": "", "rolling": False, "checked": ""}
+    fd = s.analyse(l, FakeFetcher(pages), TODAY)
+    assert fd.apply_url == rec and fd.confidence == "high", fd
+    pages[rec].insecure = True
+    fd = s.analyse(dict(l), FakeFetcher(pages), TODAY)
+    assert fd.confidence == "medium" and "certificate" in fd.reason, fd
 
 
 if __name__ == "__main__":

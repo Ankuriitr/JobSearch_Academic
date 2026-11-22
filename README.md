@@ -16,7 +16,7 @@ academic-jobs-site/
   scraper/scrape.py           the scraper
   scraper/test_scrape.py      offline tests for the scraper's rules
   scraper/requirements.txt    Python libraries it needs
-  .github/workflows/update-listings.yml   runs the scraper daily on GitHub
+  .github/workflows/main.yml   runs the scraper daily on GitHub
 ```
 
 Open the site on your computer by double-clicking `index.html`.
@@ -27,13 +27,14 @@ For each listing, `scraper/scrape.py`:
 
 1. **Finds the recruitment page.** It opens the saved apply link. If there is none, or it is dead, it starts
    at the institute homepage and follows the links that look like faculty recruitment, two levels deep.
-2. **Finds the advertisement.** On that page it scores every link (words like faculty, professor, rolling,
+2. **Searches deeper when needed.** It also tries common addresses such as `/recruitment` and `/careers`.
+3. **Finds the advertisement.** On that page it scores every link (words like faculty, professor, rolling,
    advertisement count for it; non-teaching, JRF, project, tender count against it) and opens the best ones,
    including PDFs.
-3. **Reads the last date.** It looks for a date right after phrases such as "last date", "on or before",
+4. **Reads the last date.** It looks for a date right after phrases such as "last date", "on or before",
    "closing date", "extended up to", and for rolling-advertisement wording.
-4. **Verifies.** The page must load, be on the institute's own domain, and be about faculty posts.
-5. **Decides.**
+5. **Verifies.** The page must load, be on the institute's own domain, and be about faculty posts.
+6. **Decides.**
    - High confidence (a last date or rolling wording was read): the listing is updated automatically
      with status, last date, advertisement link and today's date as "checked".
    - Medium (page found, but no date could be read, or the PDF is a scan): links are filled in,
@@ -41,6 +42,12 @@ For each listing, `scraper/scrape.py`:
    - Low (site down or nothing found): nothing changes; it is listed under "Could not be read".
    - A listing whose last date has passed is closed automatically.
    - It never flips an Open listing to Closed only because it found an older advertisement; that goes to review.
+   - "Rolling" counts only when the advertisement itself says so. A rolling advertisement whose latest
+     cut-off has passed goes to review.
+   - Links that are a homepage, an unrelated page (faculty profiles, "in-charge" lists) or carry a year two or more
+     years old are not used as the advertisement.
+   - Sites with a broken security certificate are still read, but their findings always go to review.
+   - At most 30 pages are opened per institute, so one slow site cannot hold up the run.
 
 Set `"locked": true` on a listing to make the scraper leave it alone.
 
@@ -61,10 +68,10 @@ Then read `data/scrape-report.md`.
 Put the folder in a GitHub repository with GitHub Pages turned on (see Hosting). The included workflow then:
 
 - runs the scraper every day at 06:47 India time and commits the changes, so the live site updates itself;
-- rebuilds `data/listings.js` whenever you edit `data/listings.json` on github.com;
+- republishes the site whenever you change anything on github.com, rebuilding `data/listings.js` first;
 - can be started any time from the repository's Actions tab ("Update listings", "Run workflow").
 
-One-time setting: repository Settings, Actions, General, Workflow permissions, choose "Read and write permissions".
+One-time settings: see Hosting below.
 
 ### Optional add-ons (each needs a paid API key, stored under Settings, Secrets and variables, Actions)
 
@@ -101,10 +108,11 @@ Add an institute type in `GROUPS` and `KIND_LABEL` at the top of `js/app.js`.
 ### GitHub Pages (needed for the automatic updates)
 1. Create a free account at https://github.com and a new public repository.
 2. Upload the contents of this folder, keeping `index.html` at the top level. Include the hidden `.github` folder;
-   if drag-and-drop skips it, create `.github/workflows/update-listings.yml` with "Add file, Create new file" and paste its contents.
-3. Settings, Pages, "Deploy from a branch", branch `main`, folder `/ (root)`, Save.
-4. Settings, Actions, General, Workflow permissions, "Read and write permissions", Save.
-5. The site appears at `https://<your-username>.github.io/<repository>/`.
+   if it gets skipped, create `.github/workflows/main.yml` with "Add file, Create new file" and paste its contents.
+3. Settings, Pages, Build and deployment, Source: choose **GitHub Actions**.
+4. Settings, Actions, General, Workflow permissions: choose **Read and write permissions**, Save.
+5. Actions tab, "Update listings", "Run workflow". When it finishes, the site is at
+   `https://<your-username>.github.io/<repository>/`.
 
 ### Netlify Drop (quickest, but no automatic updates)
 Drag the folder onto https://app.netlify.com/drop.
