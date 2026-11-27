@@ -1,6 +1,6 @@
-# Scrape report, 2026-11-26
+# Scrape report, 2026-11-27
 
-Checked 105 listings: 28 updated automatically, 0 confirmed unchanged, 40 need your review, 37 could not be read.
+Checked 105 listings: 29 updated automatically, 0 confirmed unchanged, 40 need your review, 36 could not be read.
 
 ## Needs your review
 
@@ -34,7 +34,7 @@ Checked 105 listings: 28 updated automatically, 0 confirmed unchanged, 40 need y
 - **Babasaheb Bhimrao Ambedkar University**: recruitment page found but no last date or rolling wording
 - **Maulana Azad National Urdu University**: recruitment page found but no last date or rolling wording
 - **Pondicherry University**: recruitment page found but no last date or rolling wording
-- **Mizoram University**: last date 2026-12-03 read from the advertisement (site has a broken security certificate, so not applied automatically)
+- **Mizoram University**: last date 2026-12-11 read from the advertisement (site has a broken security certificate, so not applied automatically)
 - **Rajiv Gandhi University**: recruitment page found but no last date or rolling wording
 - **Central University of Rajasthan**: last date 2026-10-31 read from the advertisement (site has a broken security certificate, so not applied automatically)
 - **Central University of Gujarat**: rolling advertisement, but its latest cut-off date (2026-08-20) has passed; check whether it is still open
@@ -69,11 +69,12 @@ Checked 105 listings: 28 updated automatically, 0 confirmed unchanged, 40 need y
 - **University of Delhi**: last date 2026-11-30 read from the advertisement
 - **Jawaharlal Nehru University**: last date 2027-03-31 read from the advertisement
 - **Indira Gandhi National Open University**: last date 2026-12-11 read from the advertisement
-- **University of Hyderabad**: last date 2026-12-10 read from the advertisement
+- **University of Hyderabad**: last date 2026-12-31 read from the advertisement
 - **Assam University**: rolling advertisement
 - **Manipur University**: last date 2026-12-05 read from the advertisement
 - **Central University of Punjab**: last date 2026-11-30 read from the advertisement
 - **Mahatma Gandhi Central University**: last date 2026-01-19 read from the advertisement
+- **Central University of Karnataka**: last date 2026-12-02 read from the advertisement
 - **Dr. Harisingh Gour Vishwavidyalaya**: last date 2026-08-07 read from the advertisement
 
 ## Could not be read
@@ -92,7 +93,7 @@ Checked 105 listings: 28 updated automatically, 0 confirmed unchanged, 40 need y
 - **NIT Manipur**: homepage did not load (HTTP 404)
 - **NIT Nagaland**: no faculty recruitment page found from the homepage
 - **NIT Puducherry**: no faculty recruitment page found from the homepage
-- **NIT Raipur**: saved recruitment link did not work (ReadTimeout); homepage did not load (ReadTimeout)
+- **NIT Raipur**: saved recruitment link did not work (ReadTimeout); no faculty recruitment page found from the homepage
 - **NIT Srinagar**: no faculty recruitment page found from the homepage
 - **NIT Warangal**: no faculty recruitment page found from the homepage
 - **Jamia Millia Islamia**: no faculty recruitment page found from the homepage
@@ -111,7 +112,6 @@ Checked 105 listings: 28 updated automatically, 0 confirmed unchanged, 40 need y
 - **Central University of Kashmir**: no faculty recruitment page found from the homepage
 - **Central University of South Bihar**: homepage did not load (ConnectTimeout)
 - **Central University of Odisha**: no faculty recruitment page found from the homepage
-- **Central University of Karnataka**: saved recruitment link did not work (ConnectionError); homepage did not load (ConnectionError)
 - **Guru Ghasidas Vishwavidyalaya**: no faculty recruitment page found from the homepage
 - **HNB Garhwal University**: no faculty recruitment page found from the homepage
 - **Mahatma Gandhi Antarrashtriya Hindi Vishwavidyalaya**: no faculty recruitment page found from the homepage
