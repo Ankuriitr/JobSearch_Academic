@@ -1,6 +1,6 @@
-# Scrape report, 2026-11-27
+# Scrape report, 2026-11-28
 
-Checked 105 listings: 29 updated automatically, 0 confirmed unchanged, 40 need your review, 36 could not be read.
+Checked 105 listings: 29 updated automatically, 0 confirmed unchanged, 35 need your review, 41 could not be read.
 
 ## Needs your review
 
@@ -24,26 +24,21 @@ Checked 105 listings: 29 updated automatically, 0 confirmed unchanged, 40 need y
 - **NIT Calicut**: recruitment page found but no last date or rolling wording
 - **NIT Goa**: recruitment page found but no last date or rolling wording
 - **NIT Hamirpur**: recruitment page found but no last date or rolling wording
-- **NIT Kurukshetra**: recruitment page found but no last date or rolling wording
-- **NIT Meghalaya**: recruitment page found but no last date or rolling wording
 - **VNIT Nagpur**: recruitment page found but no last date or rolling wording
 - **NIT Patna**: recruitment page found but no last date or rolling wording
+- **NIT Raipur**: last date 2026-06-18 read from the advertisement (site has a broken security certificate, so not applied automatically)
 - **NIT Silchar**: recruitment page found but no last date or rolling wording
 - **NIT Tiruchirappalli**: rolling advertisement, but its latest cut-off date (2026-08-14) has passed; check whether it is still open
 - **University of Allahabad**: recruitment page found but no last date or rolling wording
 - **Babasaheb Bhimrao Ambedkar University**: recruitment page found but no last date or rolling wording
 - **Maulana Azad National Urdu University**: recruitment page found but no last date or rolling wording
 - **Pondicherry University**: recruitment page found but no last date or rolling wording
-- **Mizoram University**: last date 2026-12-11 read from the advertisement (site has a broken security certificate, so not applied automatically)
 - **Rajiv Gandhi University**: recruitment page found but no last date or rolling wording
 - **Central University of Rajasthan**: last date 2026-10-31 read from the advertisement (site has a broken security certificate, so not applied automatically)
 - **Central University of Gujarat**: rolling advertisement, but its latest cut-off date (2026-08-20) has passed; check whether it is still open
 - **Central University of Jharkhand**: recruitment page found but no last date or rolling wording
 - **Central University of Kerala**: recruitment page found but no last date or rolling wording
-- **Central University of Tamil Nadu**: recruitment page found but no last date or rolling wording
 - **Central University of Andhra Pradesh**: recruitment page found but no last date or rolling wording
-- **Indira Gandhi National Tribal University**: recruitment page found but no last date or rolling wording
-- **Central Tribal University of Andhra Pradesh**: recruitment page found but no last date or rolling wording
 
 ## Updated automatically
 
@@ -62,12 +57,12 @@ Checked 105 listings: 29 updated automatically, 0 confirmed unchanged, 40 need y
 - **MNIT Jaipur**: last date 2026-03-23 read from the advertisement
 - **NIT Mizoram**: last date 2026-11-30 read from the advertisement
 - **NIT Rourkela**: last date 2026-12-20 read from the advertisement
-- **NIT Sikkim**: last date 2026-06-02 read from the advertisement
+- **NIT Sikkim**: last date 2026-12-08 read from the advertisement
 - **SVNIT Surat**: last date 2026-12-02 read from the advertisement
 - **NITK Surathkal**: last date 2026-06-02 read from the advertisement
 - **NIT Uttarakhand**: last date 2026-12-04 read from the advertisement
 - **University of Delhi**: last date 2026-11-30 read from the advertisement
-- **Jawaharlal Nehru University**: last date 2027-03-31 read from the advertisement
+- **Jawaharlal Nehru University**: last date 2026-12-07 read from the advertisement
 - **Indira Gandhi National Open University**: last date 2026-12-11 read from the advertisement
 - **University of Hyderabad**: last date 2026-12-31 read from the advertisement
 - **Assam University**: rolling advertisement
@@ -85,15 +80,16 @@ Checked 105 listings: 29 updated automatically, 0 confirmed unchanged, 40 need y
 - **IIT Jammu**: saved recruitment link did not work (no readable content); no faculty recruitment page found from the homepage
 - **NIT Agartala**: no faculty recruitment page found from the homepage
 - **NIT Andhra Pradesh**: no faculty recruitment page found from the homepage
-- **NIT Arunachal Pradesh**: no faculty recruitment page found from the homepage
+- **NIT Arunachal Pradesh**: homepage did not load (HTTP 522)
 - **NIT Delhi**: no faculty recruitment page found from the homepage
 - **NIT Durgapur**: no faculty recruitment page found from the homepage
 - **NIT Jalandhar**: no faculty recruitment page found from the homepage
 - **NIT Jamshedpur**: no faculty recruitment page found from the homepage
+- **NIT Kurukshetra**: saved recruitment link did not work (ConnectTimeout); homepage did not load (ConnectTimeout)
 - **NIT Manipur**: homepage did not load (HTTP 404)
+- **NIT Meghalaya**: saved recruitment link did not work (no readable content); no faculty recruitment page found from the homepage
 - **NIT Nagaland**: no faculty recruitment page found from the homepage
 - **NIT Puducherry**: no faculty recruitment page found from the homepage
-- **NIT Raipur**: saved recruitment link did not work (ReadTimeout); no faculty recruitment page found from the homepage
 - **NIT Srinagar**: no faculty recruitment page found from the homepage
 - **NIT Warangal**: no faculty recruitment page found from the homepage
 - **Jamia Millia Islamia**: no faculty recruitment page found from the homepage
@@ -103,6 +99,7 @@ Checked 105 listings: 29 updated automatically, 0 confirmed unchanged, 40 need y
 - **Visva-Bharati**: no faculty recruitment page found from the homepage
 - **Tezpur University**: no faculty recruitment page found from the homepage
 - **North-Eastern Hill University**: no faculty recruitment page found from the homepage
+- **Mizoram University**: saved recruitment link did not work (no readable content); no faculty recruitment page found from the homepage
 - **Nagaland University**: no faculty recruitment page found from the homepage
 - **Sikkim University**: no faculty recruitment page found from the homepage
 - **Tripura University**: no faculty recruitment page found from the homepage
@@ -112,6 +109,9 @@ Checked 105 listings: 29 updated automatically, 0 confirmed unchanged, 40 need y
 - **Central University of Kashmir**: no faculty recruitment page found from the homepage
 - **Central University of South Bihar**: homepage did not load (ConnectTimeout)
 - **Central University of Odisha**: no faculty recruitment page found from the homepage
+- **Central University of Tamil Nadu**: saved recruitment link did not work (no readable content); no faculty recruitment page found from the homepage
 - **Guru Ghasidas Vishwavidyalaya**: no faculty recruitment page found from the homepage
+- **Indira Gandhi National Tribal University**: saved recruitment link did not work (ReadTimeout); homepage did not load (ReadTimeout)
 - **HNB Garhwal University**: no faculty recruitment page found from the homepage
 - **Mahatma Gandhi Antarrashtriya Hindi Vishwavidyalaya**: no faculty recruitment page found from the homepage
+- **Central Tribal University of Andhra Pradesh**: saved recruitment link did not work (no readable content); no faculty recruitment page found from the homepage
